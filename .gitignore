@@ -4,7 +4,8 @@ main
 main.exe
 src/gowa
 .claude
-
+.agents
+_bmad
 # Build artifacts
 src/pkged.go
 
