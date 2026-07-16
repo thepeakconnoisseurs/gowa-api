@@ -39,5 +39,8 @@ tmp/
 # Worktrees
 .worktrees/
 
+# Local Superpowers planning artifacts
+docs/superpowers/
+
 # whatsmeow store (legacy path)
 src/whatsapp/
