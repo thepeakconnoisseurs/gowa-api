@@ -6,7 +6,7 @@ set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
 # Files whose LOCAL version is authoritative during upstream merges.
-PROTECTED_PATHS=(docker-compose.yml)
+PROTECTED_PATHS=(docker-compose.yml .github/workflows/build-custom-dockerhub.yaml)
 
 # .gitignore is union-merged: these local entries must survive every sync.
 REQUIRED_GITIGNORE_ENTRIES=(".claude" ".agents" "_bmad")
@@ -16,6 +16,8 @@ verify() {
   grep -q '127\.0\.0\.1:3500:3000' docker-compose.yml      || { echo "VERIFY FAIL: docker-compose.yml lost the 127.0.0.1:3500 bind"; fail=1; }
   grep -q 'n8n-tpc' docker-compose.yml                     || { echo "VERIFY FAIL: docker-compose.yml lost the n8n-tpc network"; fail=1; }
   grep -q 'container_name: gowa-api' docker-compose.yml    || { echo "VERIFY FAIL: docker-compose.yml lost container_name: gowa-api"; fail=1; }
+  grep -q 'thepeakconnoisseurs/gowa-api' .github/workflows/build-custom-dockerhub.yaml \
+    || { echo "VERIFY FAIL: custom CI workflow missing or lost its image name"; fail=1; }
   local e
   for e in "${REQUIRED_GITIGNORE_ENTRIES[@]}"; do
     grep -qx "$e" .gitignore || { echo "VERIFY FAIL: .gitignore lost entry: $e"; fail=1; }

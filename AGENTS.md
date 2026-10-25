@@ -88,7 +88,7 @@ This `main` is a customized fork of `aldinokemal/go-whatsapp-web-multidevice`
 (remote `upstream`; team fork is `origin`). Before any `fetch`/`merge`/`pull`
 from `upstream`, follow [docs/upstream-sync.md](docs/upstream-sync.md) exactly,
 or run `scripts/upstream-sync.sh`. Core rule: locally customized files
-(`docker-compose.yml` fully; `.gitignore` entries `.agents`, `_bmad`; the
+(`docker-compose.yml` fully; `.gitignore` entries `.agents`, `_bmad`; the custom CI `.github/workflows/build-custom-dockerhub.yaml`; the
 generated `docs/` knowledge set) MUST keep the local version through every
 upstream merge — a clean auto-merge can still silently take the upstream side
 when only upstream changed a file since the last merge, so the restore and

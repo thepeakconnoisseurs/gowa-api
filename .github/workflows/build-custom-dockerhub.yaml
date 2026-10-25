@@ -1,0 +1,78 @@
+name: Build Custom Image (DockerHub)
+
+# Custom fork CI — builds thepeakconnoisseurs/gowa-api and pushes to DockerHub ONLY.
+# Protected custom file: listed in docs/upstream-sync.md and enforced by
+# scripts/upstream-sync.sh. Upstream never ships this filename.
+# Required repo secrets: DOCKERHUB_USERNAME (= thepeakconnoisseurs),
+# DOCKERHUB_TOKEN (Docker Hub access token, Read/Write).
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: build-custom-dockerhub
+  cancel-in-progress: true
+
+env:
+  IMAGE: thepeakconnoisseurs/gowa-api
+
+jobs:
+  build-and-push:
+    name: Build & Push (linux/amd64 -> DockerHub)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Compute image tags
+        id: meta
+        run: |
+          APP_VERSION="$(grep -oP 'AppVersion\s*=\s*"\K[^"]+' src/config/settings.go || true)"
+          [ -n "$APP_VERSION" ] || APP_VERSION="unknown"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          {
+            echo "version=${APP_VERSION}"
+            echo "short_sha=${SHORT_SHA}"
+            echo "tags<<EOF"
+            echo "${IMAGE}:latest"
+            echo "${IMAGE}:main"
+            echo "${IMAGE}:${APP_VERSION}-custom.${SHORT_SHA}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./docker/golang.Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Job summary
+        run: |
+          {
+            echo "## Custom image pushed to DockerHub"
+            echo '```'
+            echo "${IMAGE}:latest"
+            echo "${IMAGE}:main"
+            echo "${IMAGE}:${{ steps.meta.outputs.version }}-custom.${{ steps.meta.outputs.short_sha }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
