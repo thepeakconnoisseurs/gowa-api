@@ -81,3 +81,19 @@ are relative to the process directory. Direct runs use `src/storages`
 and `src/statics`; Docker Compose mounts the root-level directories into `/app`.
 Keep these paths excluded from hot reload in `src/.air.toml`. The Docker entrypoint
 fixes volume ownership before dropping to `gowauser`.
+
+## Upstream sync (custom fork) — MANDATORY
+
+This `main` is a customized fork of `aldinokemal/go-whatsapp-web-multidevice`
+(remote `upstream`; team fork is `origin`). Before any `fetch`/`merge`/`pull`
+from `upstream`, follow [docs/upstream-sync.md](docs/upstream-sync.md) exactly,
+or run `scripts/upstream-sync.sh`. Core rule: locally customized files
+(`docker-compose.yml` fully; `.gitignore` entries `.agents`, `_bmad`; the
+generated `docs/` knowledge set) MUST keep the local version through every
+upstream merge — a clean auto-merge can still silently take the upstream side
+when only upstream changed a file since the last merge, so the restore and
+marker-verification steps are mandatory even without conflicts. Forbidden:
+`-X theirs/-X ours`, `checkout upstream/main -- <path>`, `reset --hard`,
+rebasing `main` onto upstream, force-push, and pushing to `upstream` (read-only).
+When adding a new customized file, update the inventory and the script markers
+in the same change.
