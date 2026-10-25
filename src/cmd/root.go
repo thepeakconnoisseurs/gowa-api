@@ -46,11 +46,13 @@ var (
 	callUsecase       domainCall.ICallUsecase
 	chatUsecase       domainChat.IChatUsecase
 	sendUsecase       domainSend.ISendUsecase
+	scheduleUsecase   domainSend.IScheduleUsecase
 	userUsecase       domainUser.IUserUsecase
 	messageUsecase    domainMessage.IMessageUsecase
 	groupUsecase      domainGroup.IGroupUsecase
 	newsletterUsecase domainNewsletter.INewsletterUsecase
 	deviceUsecase     domainDevice.IDeviceUsecase
+	scheduleStop      func()
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -71,8 +73,15 @@ func init() {
 	// Initialize flags first, before any subcommands are added
 	initFlags()
 
-	// Then initialize other components
-	cobra.OnInitialize(initEnvConfig, initApp)
+	// Then initialize other components. Cobra marks the target command as called
+	// before running initializers, so `version` can skip config and storage setup.
+	cobra.OnInitialize(func() {
+		if versionCmd.CalledAs() != "" {
+			return
+		}
+		initEnvConfig()
+		initApp()
+	})
 }
 
 // initEnvConfig loads configuration from environment variables
@@ -106,11 +115,15 @@ func initEnvConfig() {
 		config.AppCORSAllowedOrigins = strings.Split(envCORSOrigins, ",")
 	}
 
-	// Web UI settings. Guard on GetString != "" rather than viper.IsSet:
-	// IsSet does not consult AutomaticEnv, so plain environment variables
-	// (e.g. in Docker) would be ignored for bool/duration keys.
+	// Web UI settings. Guarded on GetString != "" so an unset key keeps the
+	// default instead of being overwritten by the zero value of GetBool /
+	// GetDuration. viper.IsSet works equally well here (it does consult
+	// AutomaticEnv), so either guard is fine for new keys.
 	if viper.GetString("app_ui_enabled") != "" {
 		config.AppUIEnabled = viper.GetBool("app_ui_enabled")
+	}
+	if viper.GetString("mcp_enabled") != "" {
+		config.McpEnabled = viper.GetBool("mcp_enabled")
 	}
 	if viper.GetString("app_ui_auto_update") != "" {
 		config.AppUIAutoUpdate = viper.GetBool("app_ui_auto_update")
@@ -156,6 +169,9 @@ func initEnvConfig() {
 	if viper.IsSet("whatsapp_auto_download_media") {
 		config.WhatsappAutoDownloadMedia = viper.GetBool("whatsapp_auto_download_media")
 	}
+	if viper.IsSet("whatsapp_ignore_status_media") {
+		config.WhatsappIgnoreStatusMedia = viper.GetBool("whatsapp_ignore_status_media")
+	}
 	if envWebhook := viper.GetString("whatsapp_webhook"); envWebhook != "" {
 		webhook := strings.Split(envWebhook, ",")
 		config.WhatsappWebhook = webhook
@@ -179,6 +195,9 @@ func initEnvConfig() {
 			}
 		}
 		config.WhatsappWebhookIgnoreJids = jids
+	}
+	if viper.IsSet("whatsapp_webhook_device_merge_global") {
+		config.WhatsappWebhookDeviceMergeGlobal = viper.GetBool("whatsapp_webhook_device_merge_global")
 	}
 	if viper.IsSet("whatsapp_account_validation") {
 		config.WhatsappAccountValidation = viper.GetBool("whatsapp_account_validation")
@@ -382,6 +401,12 @@ func initFlags() {
 		config.AppUIAssetSHA256,
 		`supply-chain pin: only serve the dashboard whose sha256 matches --ui-asset-sha256 <hex> (see the release's .sha256 asset)`,
 	)
+	rootCmd.PersistentFlags().BoolVarP(
+		&config.McpEnabled,
+		"mcp-enabled", "",
+		config.McpEnabled,
+		`serve the MCP endpoint at /mcp --mcp-enabled <bool>`,
+	)
 
 	// Database flags
 	rootCmd.PersistentFlags().StringVarP(
@@ -416,6 +441,12 @@ func initFlags() {
 		config.WhatsappAutoDownloadMedia,
 		`auto download media from incoming messages --auto-download-media <true/false> | example: --auto-download-media=false`,
 	)
+	rootCmd.PersistentFlags().BoolVarP(
+		&config.WhatsappIgnoreStatusMedia,
+		"ignore-status-media", "",
+		config.WhatsappIgnoreStatusMedia,
+		`ignore downloading status media --ignore-status-media <true/false> | example: --ignore-status-media=true`,
+	)
 	rootCmd.PersistentFlags().StringSliceVarP(
 		&config.WhatsappWebhook,
 		"webhook", "w",
@@ -445,6 +476,12 @@ func initFlags() {
 		"webhook-ignore-jids", "",
 		config.WhatsappWebhookIgnoreJids,
 		`comma-separated WhatsApp JIDs (or "@g.us"/"@s.whatsapp.net"/"@lid" wildcards) to skip when forwarding to webhooks --webhook-ignore-jids <list> | example: --webhook-ignore-jids="@g.us,628123456789@s.whatsapp.net"`,
+	)
+	rootCmd.PersistentFlags().BoolVarP(
+		&config.WhatsappWebhookDeviceMergeGlobal,
+		"webhook-device-merge-global", "",
+		config.WhatsappWebhookDeviceMergeGlobal,
+		`also deliver a device's events to the global --webhook URLs when that device has its own webhook (default: device webhook replaces the global ones) --webhook-device-merge-global <true/false> | example: --webhook-device-merge-global=true`,
 	)
 	rootCmd.PersistentFlags().BoolVarP(
 		&config.WhatsappAccountValidation,
@@ -684,12 +721,26 @@ func initApp() {
 	appUsecase = usecase.NewAppService(chatStorageRepo, dm)
 	callUsecase = usecase.NewCallService()
 	chatUsecase = usecase.NewChatService(chatStorageRepo)
-	sendUsecase = usecase.NewSendService(appUsecase, chatStorageRepo)
+	baseSendUsecase := usecase.NewSendService(appUsecase, chatStorageRepo)
+	scheduleService := usecase.NewScheduleService(chatStorageRepo, baseSendUsecase, dm, config.PathStorages)
+	scheduleUsecase = scheduleService
+	sendUsecase = usecase.NewScheduledSendService(baseSendUsecase, scheduleService)
 	userUsecase = usecase.NewUserService(chatStorageRepo)
 	messageUsecase = usecase.NewMessageService(chatStorageRepo)
 	groupUsecase = usecase.NewGroupService()
 	newsletterUsecase = usecase.NewNewsletterService()
 	deviceUsecase = usecase.NewDeviceService(dm, appUsecase)
+	scheduleCtx, scheduleCancel := context.WithCancel(context.Background())
+	scheduleService.Start(scheduleCtx)
+	// Stop gives an in-flight scheduled send up to 10s to finish before storage
+	// closes; a send cut off later is recovered as interrupted on next boot.
+	scheduleStop = func() {
+		scheduleCancel()
+		select {
+		case <-scheduleService.Done():
+		case <-time.After(10 * time.Second):
+		}
+	}
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
