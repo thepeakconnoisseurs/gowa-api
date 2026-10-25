@@ -18,6 +18,7 @@ verify() {
   grep -q 'container_name: gowa-api' docker-compose.yml    || { echo "VERIFY FAIL: docker-compose.yml lost container_name: gowa-api"; fail=1; }
   grep -q 'thepeakconnoisseurs/gowa-api' .github/workflows/build-custom-dockerhub.yaml \
     || { echo "VERIFY FAIL: custom CI workflow missing or lost its image name"; fail=1; }
+  grep -q 'WHATSAPP_PROXY' docs/ban-risk-mitigation.md || { echo "VERIFY FAIL: ban-risk mitigation guide missing"; fail=1; }
   local e
   for e in "${REQUIRED_GITIGNORE_ENTRIES[@]}"; do
     grep -qx "$e" .gitignore || { echo "VERIFY FAIL: .gitignore lost entry: $e"; fail=1; }

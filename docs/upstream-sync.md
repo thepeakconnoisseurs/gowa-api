@@ -28,6 +28,7 @@ upstream. Anything not on this list should follow upstream.
 | `docker-compose.yml` | FULL local | `container_name: gowa-api`, image tag `gowa-api:latest`, bind `127.0.0.1:3500:3000`, networks `n8n-tpc` (external) + `gowa-api` (bridge), json-file logging caps |
 | `.gitignore` | UNION | local entries `.agents`, `_bmad` (note: `.claude`, `src/gowa` etc. already exist upstream) |
 | `.github/workflows/build-custom-dockerhub.yaml` | FULL local | Custom fork CI: builds and pushes `thepeakconnoisseurs/gowa-api` (linux/amd64) to DockerHub ONLY. Requires repo secrets DOCKERHUB_USERNAME / DOCKERHUB_TOKEN. Upstream never ships this filename. |
+| `docs/ban-risk-mitigation.md` | FULL local | Ban-risk guide for the unofficial WhatsApp surface (verified code mechanics, config snapshot, caller pacing rules). Upstream never ships this filename. |
 | `docs/*.md` generated set (index, project-overview, architecture, api-contracts-gowa, data-models-gowa, source-tree-analysis, component-inventory, development-guide, deployment-guide, project-scan-report.json) | FULL local | Identifier snapshot of the fork's customized state (committed `b34f816`). Upstream never has these filenames; keep them on conflicts. |
 | `src/.env` | never in git | gitignored; never commit, never overwrite |
 
