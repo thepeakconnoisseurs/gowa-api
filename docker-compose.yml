@@ -6,11 +6,10 @@ services:
       options:
         max-size: "200k"
         max-file: "10"
-    build:
-      context: .
-      dockerfile: ./docker/golang.Dockerfile
-      tags:
-        - "gowa-api:latest"
+    # Custom image built by CI (.github/workflows/build-custom-dockerhub.yaml) and pushed
+    # to Docker Hub as peakwine/gowa-api. Never built locally anymore.
+    image: peakwine/gowa-api:latest
+    pull_policy: always
     restart: "on-failure"
     ports:
       - "127.0.0.1:3500:3000"

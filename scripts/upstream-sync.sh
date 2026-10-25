@@ -16,7 +16,7 @@ verify() {
   grep -q '127\.0\.0\.1:3500:3000' docker-compose.yml      || { echo "VERIFY FAIL: docker-compose.yml lost the 127.0.0.1:3500 bind"; fail=1; }
   grep -q 'n8n-tpc' docker-compose.yml                     || { echo "VERIFY FAIL: docker-compose.yml lost the n8n-tpc network"; fail=1; }
   grep -q 'container_name: gowa-api' docker-compose.yml    || { echo "VERIFY FAIL: docker-compose.yml lost container_name: gowa-api"; fail=1; }
-  grep -q 'thepeakconnoisseurs/gowa-api' .github/workflows/build-custom-dockerhub.yaml \
+  grep -q 'peakwine/gowa-api' .github/workflows/build-custom-dockerhub.yaml \
     || { echo "VERIFY FAIL: custom CI workflow missing or lost its image name"; fail=1; }
   grep -q 'WHATSAPP_PROXY' docs/ban-risk-mitigation.md || { echo "VERIFY FAIL: ban-risk mitigation guide missing"; fail=1; }
   local e

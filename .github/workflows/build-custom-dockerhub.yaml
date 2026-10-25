@@ -1,9 +1,9 @@
 name: Build Custom Image (DockerHub)
 
-# Custom fork CI — builds thepeakconnoisseurs/gowa-api and pushes to DockerHub ONLY.
+# Custom fork CI — builds peakwine/gowa-api and pushes to DockerHub ONLY.
 # Protected custom file: listed in docs/upstream-sync.md and enforced by
 # scripts/upstream-sync.sh. Upstream never ships this filename.
-# Required repo secrets: DOCKERHUB_USERNAME (= thepeakconnoisseurs),
+# Required repo secrets: DOCKERHUB_USERNAME (= peakwine),
 # DOCKERHUB_TOKEN (Docker Hub access token, Read/Write).
 
 on:
@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  IMAGE: thepeakconnoisseurs/gowa-api
+  IMAGE: peakwine/gowa-api
 
 jobs:
   build-and-push:
