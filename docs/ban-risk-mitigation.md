@@ -68,7 +68,7 @@
 | `WHATSAPP_AUTO_MARK_READ` | `false` | |
 | `WHATSAPP_ACCOUNT_VALIDATION` | `true` | |
 | `WHATSAPP_PRESENCE_PULSE_ENABLED` | `true` | 24h/5m defaults kept |
-| `WHATSAPP_PROXY` | *(empty — RESERVED)* | fill with a sticky residential proxy when available; also set `HTTP_PROXY`/`HTTPS_PROXY` for media |
+| `WHATSAPP_PROXY` | set: DataImpulse sticky residential (Indonesia), SOCKS5 via dedicated gateway IP | WebSocket egress only; media downloads remain direct; credentials live only in gitignored `src/.env` (since 2026-10-25) |
 
 ## 4. Caller-side discipline (n8n / API clients) — the highest-leverage layer
 
